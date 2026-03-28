@@ -1,0 +1,82 @@
+# Obstacle Detector — Core Pipeline
+
+Real-time walking obstacle detection using YOLOv8n.
+No internet required after setup. Fully on-device.
+
+---
+
+## Setup
+
+```bash
+pip install -r requirements.txt
+```
+
+That's it. YOLOv8n (~6 MB) downloads automatically on first run.
+
+---
+
+## Run
+
+```bash
+# Default webcam
+python detector.py
+
+# Specific camera (e.g. rear camera on USB or index 1)
+python detector.py --source 1
+
+# Test on a video file
+python detector.py --source path/to/video.mp4
+```
+
+Press **Q** to quit.
+
+---
+
+## How It Works
+
+```
+Camera Frame
+    │
+    ▼
+YOLOv8n (object detection)
+    │  detects: person, car, chair, bench, bike, etc.
+    ▼
+Center Corridor Filter
+    │  only objects in the middle 50% of the frame are in your path
+    ▼
+Depth Proxy (bounding box height ratio)
+    │  box_height / frame_height → how close the object is
+    ▼
+Risk Score
+    │  > 40% frame height → DANGER (stop!)
+    │  > 20% frame height → WARNING (caution)
+    │  else              → SAFE
+    ▼
+Voice Alert (pyttsx3, background thread)
++ Visual Overlay (OpenCV)
+```
+
+---
+
+## Tuning
+
+All thresholds are at the top of `detector.py`:
+
+| Constant | Default | Meaning |
+|---|---|---|
+| `DANGER_THRESHOLD` | 0.40 | Box height > 40% of frame = imminent |
+| `WARNING_THRESHOLD` | 0.20 | Box height > 20% of frame = approaching |
+| `CENTER_ZONE_LEFT` | 0.25 | Left edge of walking corridor |
+| `CENTER_ZONE_RIGHT` | 0.75 | Right edge of walking corridor |
+| `CONF_THRESHOLD` | 0.45 | Min YOLO confidence to count |
+| `ALERT_COOLDOWN` | 2.5s | Min gap between voice alerts |
+
+---
+
+## Next Steps (Phase 2)
+
+- [ ] Swap depth proxy for **MiDaS** monocular depth estimation (more accurate)
+- [ ] Add **moving object trajectory prediction** (are they walking toward me?)
+- [ ] Add **directional alerts** ("person on your left")
+- [ ] Mobile frontend (Flutter + TFLite export of YOLOv8n)
+- [ ] Haptic feedback via phone vibration API
